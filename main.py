@@ -41,47 +41,56 @@ def keep_alive():
 # ---------------- Команда /start ----------------
 @dp.message(Command("start"))
 async def start(message: types.Message):
-    user_data[message.from_user.id] = {}
+    username = message.from_user.username
+    if not username:
+        await message.answer("У вас нет @username, пожалуйста, добавьте его в Telegram, чтобы пройти тест.")
+        return
+
+    user_data[username] = {}
     await message.answer("Привет! Давай начнём тест.\nБыл ли у вас опыт в данной сфере? (Да/Нет)")
 
 # ---------------- Обработка ответов ----------------
 @dp.message()
 async def process_test(message: types.Message):
-    user_id = message.from_user.id
-    data = user_data.get(user_id, {})
+    username = message.from_user.username
+    if not username:
+        await message.answer("У вас нет @username, невозможно сохранить данные.")
+        return
+
+    data = user_data.get(username, {})
 
     # Вопрос 1: опыт
     if "experience" not in data:
         data["experience"] = message.text
-        user_data[user_id] = data
+        user_data[username] = data
         await message.answer("Какие у вас были профиты/достижения? Напишите текстом.")
         return
 
     # Вопрос 2: профиты
     if "profits" not in data:
         data["profits"] = message.text
-        user_data[user_id] = data
+        user_data[username] = data
         await message.answer("На сколько времени вы планируете быть в команде? (<1 мес / 1–3 мес / 3–6 мес / >6 мес)")
         return
 
     # Вопрос 3: длительность
     if "duration" not in data:
         data["duration"] = message.text
-        user_data[user_id] = data
+        user_data[username] = data
 
         # ---------------- Сохраняем в Google Sheets ----------------
-        sheet.append_row([message.from_user.id, data["experience"], data["profits"], data["duration"]])
+        sheet.append_row([username, data["experience"], data["profits"], data["duration"]])
 
         # ---------------- Отправляем уведомление админу ----------------
         await bot.send_message(ADMIN_CHAT_ID,
                                f"Новый кандидат!\n"
-                               f"ID: {message.from_user.id}\n"
+                               f"@{username}\n"
                                f"Опыт: {data['experience']}\n"
                                f"Профиты: {data['profits']}\n"
                                f"Длительность: {data['duration']}")
 
         await message.answer("Спасибо! Тест завершён. Скоро с вами свяжутся.")
-        del user_data[user_id]
+        del user_data[username]
 
 # ---------------- Запуск бота ----------------
 async def main():
