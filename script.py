@@ -3,17 +3,19 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from flask import Flask
+from threading import Thread
 
-# ---------------- Настройки ----------------
+# ---------------- Настройки бота ----------------
 TOKEN = "7335593108:AAHjyiXOA8wBRxaVRx_3VobA91DXZCjjQRM"
 ADMIN_CHAT_ID = 7371605868
 
-# Настройка Google Sheets
+# ---------------- Настройка Google Sheets ----------------
 scope = ["https://spreadsheets.google.com/feeds",
          "https://www.googleapis.com/auth/drive"]
 creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
 client = gspread.authorize(creds)
-sheet = client.open("TestBotData").sheet1  # имя таблицы
+sheet = client.open("TestBotData").sheet1  # Имя таблицы
 
 # ---------------- Инициализация бота ----------------
 bot = Bot(token=TOKEN)
@@ -21,6 +23,20 @@ dp = Dispatcher()
 
 # ---------------- Хранилище данных пользователей ----------------
 user_data = {}
+
+# ---------------- Веб-сервер для 24/7 ----------------
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is running"
+
+def run():
+    app.run(host='0.0.0.0', port=8080)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
 
 # ---------------- Команда /start ----------------
 @dp.message(Command("start"))
@@ -71,5 +87,6 @@ async def process_test(message: types.Message):
 async def main():
     await dp.start_polling(bot)
 
-if __name__ == "__main__":
-    asyncio.run(main())
+# ---------------- Старт веб-сервера и бота ----------------
+keep_alive()
+asyncio.run(main())
